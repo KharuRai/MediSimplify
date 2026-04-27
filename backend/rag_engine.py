@@ -51,13 +51,13 @@ def run_rag_pipeline(fda_data_list: List[Dict[str, Any]], ocr_text: str) -> Dict
     system_prompt = """You are MediSimplify. Explain this prescription in simple language. Never diagnose. Always include a disclaimer to consult a doctor.
     
     Respond ONLY with valid JSON in the exact following structure:
-    {
+    {{
       "medicines": ["List of extracted medicine names"],
       "dosage": "Simplified dosage instructions",
       "purpose": "What the medicines are for",
       "warnings": ["List of key warnings or side effects"],
       "disclaimer": "A standard medical disclaimer stating this is AI generated and not medical advice."
-    }
+    }}
     """
     
     prompt = ChatPromptTemplate.from_messages([
