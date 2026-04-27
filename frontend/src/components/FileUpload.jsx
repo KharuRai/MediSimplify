@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { UploadCloud, File, X, Loader2 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function FileUpload({ onUploadSuccess }) {
   const [dragActive, setDragActive] = useState(false);
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const { session } = useAuth();
 
   const handleDrag = (e) => {
     e.preventDefault();
@@ -46,7 +48,7 @@ export default function FileUpload({ onUploadSuccess }) {
   };
 
   const handleUpload = async () => {
-    if (!file) return;
+    if (!file || !session) return;
     
     setLoading(true);
     setError('');
@@ -57,6 +59,9 @@ export default function FileUpload({ onUploadSuccess }) {
     try {
       const response = await fetch('http://localhost:8000/upload', {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        },
         body: formData,
       });
       

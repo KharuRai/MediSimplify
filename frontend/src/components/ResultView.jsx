@@ -1,11 +1,25 @@
 import React from 'react';
 import { Download, ArrowLeft, AlertTriangle, Info, Pill, FileText } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function ResultView({ result, onBack }) {
   const { data, id } = result;
+  const { session } = useAuth();
 
-  const handleDownload = () => {
-    window.open(`http://localhost:8000/result/${id}`, '_blank');
+  const handleDownload = async () => {
+    if (!session) return;
+    try {
+      const response = await fetch(`http://localhost:8000/reports/${id}/download`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      if (!response.ok) throw new Error('Failed to get download link');
+      const resData = await response.json();
+      window.open(resData.signed_url, '_blank');
+    } catch (err) {
+      alert('Error downloading: ' + err.message);
+    }
   };
 
   return (
