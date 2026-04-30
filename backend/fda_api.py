@@ -1,5 +1,4 @@
 import requests
-import urllib.parse
 from typing import Dict, Any, List
 
 def get_fda_drug_data(drug_name: str) -> List[Dict[str, Any]]:
@@ -7,12 +6,23 @@ def get_fda_drug_data(drug_name: str) -> List[Dict[str, Any]]:
     Queries the OpenFDA API for a given drug name.
     Returns a list of label data results if found, or an empty list if not found or on error.
     """
-    # Clean the drug name for search
-    encoded_name = urllib.parse.quote(drug_name)
-    url = f"https://api.fda.gov/drug/label.json?search=openfda.brand_name:\"{encoded_name}\"&limit=3"
+    clean_name = (drug_name or "").strip()
+    if not clean_name:
+        return []
+
+    # Search both brand and generic names to improve match rate.
+    search_query = (
+        f'openfda.brand_name:"{clean_name}"'
+        f'+openfda.generic_name:"{clean_name}"'
+    )
+    url = "https://api.fda.gov/drug/label.json"
     
     try:
-        response = requests.get(url, timeout=10)
+        response = requests.get(
+            url,
+            params={"search": search_query, "limit": 3},
+            timeout=10
+        )
         response.raise_for_status()
         data = response.json()
         

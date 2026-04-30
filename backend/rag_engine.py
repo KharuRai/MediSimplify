@@ -20,6 +20,8 @@ STRICT SAFETY RULES:
 - If unclear, say "Not clearly mentioned"
 
 Explain this prescription in simple language.
+Use Context (OpenFDA) to validate whether medicine name, dose frequency, and major warnings are consistent.
+If FDA context is missing or uncertain, set fda_validation to "Not clearly mentioned".
 
 Respond ONLY with valid JSON in the exact following structure:
 {
@@ -29,7 +31,8 @@ Respond ONLY with valid JSON in the exact following structure:
       "dosage": "",
       "frequency": "",
       "purpose": "",
-      "warnings": ""
+      "warnings": "",
+      "fda_validation": ""
     }
   ],
   "Disclaimer": "This is an AI generated summary. Please consult a doctor."
@@ -212,9 +215,12 @@ def run_rag_pipeline(fda_data_list: List[Dict[str, Any]], ocr_text: str, report_
     llm = ChatOpenAI(model="gpt-4o", temperature=0)
     
     system_prompt = PROMPTS.get(report_type, PROMPTS["general"])
+    # Escape literal JSON braces in system prompt so LangChain template parsing
+    # does not treat them as replacement fields.
+    escaped_system_prompt = system_prompt.replace("{", "{{").replace("}", "}}")
     
     prompt = ChatPromptTemplate.from_messages([
-        ("system", system_prompt),
+        ("system", escaped_system_prompt),
         ("user", "Context:\n{context}\n\nReport (OCR Text):\n{ocr_text}")
     ])
     
@@ -273,6 +279,8 @@ def extract_drug_names_from_ocr(ocr_text: str) -> List[str]:
     llm = ChatOpenAI(model="gpt-4o", temperature=0)
     system_prompt = """
     Extract a list of drug/medicine names from the following OCR'd medical text.
+    Prioritize medicine tokens appearing after labels like "Medication", "Medicine", "Drug", "Rx", or "Tab".
+    Keep only medicine names (remove strength like 500mg, dosage instructions, and quantity counts).
     Return ONLY a JSON list of strings. Example: ["Aspirin", "Lisinopril"].
     Do not wrap in markdown.
     """

@@ -1,7 +1,6 @@
 import React from 'react';
 import { Download, ArrowLeft, Info, FileText, Activity } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { API_BASE_URL } from '../config';
 
 export default function ResultView({ result, onBack }) {
   const { data, id } = result;
@@ -10,7 +9,7 @@ export default function ResultView({ result, onBack }) {
   const handleDownload = async () => {
     if (!session) return;
     try {
-      const response = await fetch(`${API_BASE_URL}/reports/${id}/download`, {
+      const response = await fetch(`http://localhost:8000/reports/${id}/download`, {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
         }
@@ -32,6 +31,27 @@ export default function ResultView({ result, onBack }) {
 
     if (Array.isArray(value) && value.length > 0) {
       if (typeof value[0] === 'object') {
+        const isMedicineList = value.some((item) =>
+          item && (item.name || item.dosage || item.frequency || item.purpose || item.warnings || item.fda_validation)
+        );
+
+        if (isMedicineList) {
+          return (
+            <div className="space-y-4">
+              {value.map((item, idx) => (
+                <div key={idx} className="p-4 rounded-xl border bg-white border-gray-100">
+                  <div className="font-semibold text-gray-800 mb-2">{item.name || "Unknown Medicine"}</div>
+                  {item.dosage && <p className="text-sm text-gray-600 mb-1"><span className="font-medium">Dosage:</span> {item.dosage}</p>}
+                  {item.frequency && <p className="text-sm text-gray-600 mb-1"><span className="font-medium">How to take:</span> {item.frequency}</p>}
+                  {item.purpose && <p className="text-sm text-gray-600 mb-1"><span className="font-medium">Use:</span> {item.purpose}</p>}
+                  {item.warnings && <p className="text-sm text-amber-700 mb-1"><span className="font-medium">Warnings:</span> {item.warnings}</p>}
+                  {item.fda_validation && <p className="text-sm text-sky-700"><span className="font-medium">OpenFDA check:</span> {item.fda_validation}</p>}
+                </div>
+              ))}
+            </div>
+          );
+        }
+
         // Special rendering for arrays of objects (like Lab Results)
         return (
           <div className="space-y-4">
@@ -118,7 +138,7 @@ export default function ResultView({ result, onBack }) {
         {/* Left Column: AI Summary */}
         <div className="space-y-6">
           {Object.entries(data || {}).map(([key, value]) => {
-            if (key === 'Disclaimer' || !value || (Array.isArray(value) && value.length === 0)) return null;
+            if (key === 'Disclaimer' || key === 'source_image_paths' || !value || (Array.isArray(value) && value.length === 0)) return null;
             
             return (
               <div key={key} className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
