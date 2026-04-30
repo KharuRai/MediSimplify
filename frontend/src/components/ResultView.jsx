@@ -1,5 +1,5 @@
 import React from 'react';
-import { Download, ArrowLeft, AlertTriangle, Info, Pill, FileText } from 'lucide-react';
+import { Download, ArrowLeft, Info, FileText, Activity } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function ResultView({ result, onBack }) {
@@ -22,8 +22,77 @@ export default function ResultView({ result, onBack }) {
     }
   };
 
+  const renderValue = (key, value) => {
+    if (!value) return null;
+
+    if (typeof value === 'string') {
+      return <p className="text-gray-700 leading-relaxed">{value}</p>;
+    }
+
+    if (Array.isArray(value) && value.length > 0) {
+      if (typeof value[0] === 'object') {
+        // Special rendering for arrays of objects (like Lab Results)
+        return (
+          <div className="space-y-4">
+            {value.map((item, idx) => (
+              <div 
+                key={idx} 
+                className={`p-4 rounded-xl border ${
+                  item.status === 'High' ? 'bg-red-50 border-red-200' :
+                  item.status === 'Low' ? 'bg-amber-50 border-amber-200' :
+                  'bg-white border-gray-100'
+                }`}
+              >
+                <div className="flex justify-between items-start mb-2">
+                  <span className="font-semibold text-gray-800">{item.test_name || "Unknown Test"}</span>
+                  {item.status && item.status !== 'Unknown' && item.status !== 'Normal' && (
+                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                      item.status === 'High' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
+                    }`}>
+                      {item.status}
+                    </span>
+                  )}
+                  {item.status === 'Normal' && (
+                    <span className="text-xs px-2 py-1 rounded-full font-medium bg-emerald-100 text-emerald-700">
+                      Normal
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center text-sm text-gray-600 mb-2">
+                  <span className="font-medium mr-2">{item.value !== null ? item.value : 'N/A'} {item.unit || ''}</span>
+                  {(item.min_range || item.max_range) && (
+                    <span className="text-gray-400 text-xs">
+                      (Ref: {item.min_range || '?'} - {item.max_range || '?'})
+                    </span>
+                  )}
+                </div>
+                {item.explanation && (
+                  <p className="text-sm text-gray-500 mt-2 border-t border-gray-100 pt-2">{item.explanation}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        );
+      } else {
+        // Simple string array
+        return (
+          <ul className="space-y-2">
+            {value.map((item, idx) => (
+              <li key={idx} className="flex items-start">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary-500 mt-2 mr-2 flex-shrink-0"></span>
+                <span className="text-gray-700">{item}</span>
+              </li>
+            ))}
+          </ul>
+        );
+      }
+    }
+    
+    return <p className="text-gray-700">{String(value)}</p>;
+  };
+
   return (
-    <div className="w-full max-w-4xl mx-auto p-6 lg:p-8 bg-white rounded-3xl shadow-2xl border border-gray-100 transition-all duration-500 ease-in-out animate-in fade-in slide-in-from-bottom-4">
+    <div className={`w-full ${result.image_urls && result.image_urls.length > 0 ? 'max-w-7xl' : 'max-w-4xl'} mx-auto p-6 lg:p-8 bg-white rounded-3xl shadow-2xl border border-gray-100 transition-all duration-500 ease-in-out animate-in fade-in slide-in-from-bottom-4`}>
       
       <div className="flex items-center justify-between mb-8 pb-6 border-b border-gray-100">
         <button 
@@ -43,77 +112,56 @@ export default function ResultView({ result, onBack }) {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Left Column: Primary Info */}
+      <div className={`grid grid-cols-1 ${result.image_urls && result.image_urls.length > 0 ? 'lg:grid-cols-2 gap-8' : ''}`}>
+        
+        {/* Left Column: AI Summary */}
         <div className="space-y-6">
-          <div className="bg-blue-50/50 p-6 rounded-2xl border border-blue-100">
-            <div className="flex items-center text-blue-800 font-semibold text-lg mb-3">
-              <Pill className="w-5 h-5 mr-2" />
-              Medicines Identified
+          {Object.entries(data || {}).map(([key, value]) => {
+            if (key === 'Disclaimer' || !value || (Array.isArray(value) && value.length === 0)) return null;
+            
+            return (
+              <div key={key} className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                <div className="flex items-center text-slate-800 font-semibold text-lg mb-4 capitalize">
+                  <FileText className="w-5 h-5 mr-2 text-primary-500" />
+                  {key}
+                </div>
+                {renderValue(key, value)}
+              </div>
+            );
+          })}
+          
+          <div className="mt-8 pt-6 border-t border-gray-100">
+            <div className="flex items-start text-xs text-gray-400 bg-gray-50 p-4 rounded-lg">
+              <Info className="w-4 h-4 mr-2 flex-shrink-0 mt-0.5" />
+              <p>{data?.Disclaimer || "This is an AI generated summary. Please consult a medical professional for advice."}</p>
             </div>
-            <ul className="space-y-2">
-              {data?.Medicines && data.Medicines.length > 0 ? (
-                data.Medicines.map((med, idx) => (
-                  <li key={idx} className="flex items-start">
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 mr-2 flex-shrink-0"></span>
-                    <span className="text-gray-700">{med}</span>
-                  </li>
-                ))
-              ) : (
-                <p className="text-gray-500 italic">No specific medicines found.</p>
-              )}
-            </ul>
-          </div>
-
-          <div className="bg-emerald-50/50 p-6 rounded-2xl border border-emerald-100">
-            <div className="flex items-center text-emerald-800 font-semibold text-lg mb-3">
-              <Info className="w-5 h-5 mr-2" />
-              Purpose
-            </div>
-            <p className="text-gray-700 leading-relaxed">
-              {data?.Purpose || "No purpose specified."}
-            </p>
           </div>
         </div>
 
-        {/* Right Column: Secondary Info */}
-        <div className="space-y-6">
-          <div className="bg-amber-50/50 p-6 rounded-2xl border border-amber-100">
-            <div className="flex items-center text-amber-800 font-semibold text-lg mb-3">
-              <FileText className="w-5 h-5 mr-2" />
-              Dosage Instructions
+        {/* Right Column: Source Document Images */}
+        {result.image_urls && result.image_urls.length > 0 && (
+          <div className="space-y-4">
+            <h3 className="text-xl font-bold text-slate-800 border-b border-slate-100 pb-2 flex items-center">
+              Source Document
+            </h3>
+            <div className="flex flex-col space-y-4 bg-slate-50 p-4 rounded-2xl border border-slate-200 overflow-y-auto max-h-[800px] shadow-inner">
+              {result.image_urls.map((url, idx) => (
+                <div key={idx} className="relative group">
+                  <span className="absolute top-2 left-2 bg-slate-900/70 text-white text-xs px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity">
+                    Page {idx + 1}
+                  </span>
+                  <img 
+                    src={url} 
+                    alt={`Original document page ${idx + 1}`} 
+                    className="w-full h-auto rounded-xl shadow-sm border border-slate-300"
+                    loading="lazy"
+                  />
+                </div>
+              ))}
             </div>
-            <p className="text-gray-700 leading-relaxed">
-              {data?.Dosage || "No dosage instructions found."}
-            </p>
           </div>
+        )}
 
-          <div className="bg-red-50/50 p-6 rounded-2xl border border-red-100">
-            <div className="flex items-center text-red-800 font-semibold text-lg mb-3">
-              <AlertTriangle className="w-5 h-5 mr-2" />
-              Warnings & Side Effects
-            </div>
-            <ul className="space-y-2">
-              {data?.Warnings && data.Warnings.length > 0 ? (
-                data.Warnings.map((warning, idx) => (
-                  <li key={idx} className="flex items-start">
-                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 mt-2 mr-2 flex-shrink-0"></span>
-                    <span className="text-gray-700">{warning}</span>
-                  </li>
-                ))
-              ) : (
-                <p className="text-gray-500 italic">No specific warnings found.</p>
-              )}
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-8 pt-6 border-t border-gray-100">
-        <div className="flex items-start text-xs text-gray-400 bg-gray-50 p-4 rounded-lg">
-          <Info className="w-4 h-4 mr-2 flex-shrink-0 mt-0.5" />
-          <p>{data?.Disclaimer || "This is an AI generated summary. Please consult a medical professional for advice."}</p>
-        </div>
       </div>
     </div>
   );

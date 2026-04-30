@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 export default function FileUpload({ onUploadSuccess }) {
   const [dragActive, setDragActive] = useState(false);
   const [file, setFile] = useState(null);
+  const [reportType, setReportType] = useState('prescription');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { session } = useAuth();
@@ -25,11 +26,12 @@ export default function FileUpload({ onUploadSuccess }) {
     setDragActive(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const droppedFile = e.dataTransfer.files[0];
-      if (droppedFile.type === 'application/pdf') {
+      const validTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+      if (validTypes.includes(droppedFile.type)) {
         setFile(droppedFile);
         setError('');
       } else {
-        setError('Please upload a valid PDF file.');
+        setError('Please upload a valid PDF or Image (JPG/PNG).');
       }
     }
   };
@@ -38,11 +40,12 @@ export default function FileUpload({ onUploadSuccess }) {
     e.preventDefault();
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
-      if (selectedFile.type === 'application/pdf') {
+      const validTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+      if (validTypes.includes(selectedFile.type)) {
         setFile(selectedFile);
         setError('');
       } else {
-        setError('Please upload a valid PDF file.');
+        setError('Please upload a valid PDF or Image (JPG/PNG).');
       }
     }
   };
@@ -55,6 +58,7 @@ export default function FileUpload({ onUploadSuccess }) {
     
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('report_type', reportType);
     
     try {
       const response = await fetch('http://localhost:8000/upload', {
@@ -83,7 +87,7 @@ export default function FileUpload({ onUploadSuccess }) {
     <div className="w-full max-w-xl mx-auto p-6 bg-white rounded-2xl shadow-xl border border-gray-100">
       <div className="text-center mb-6">
         <h2 className="text-2xl font-bold text-gray-800">Simplify Medical Report</h2>
-        <p className="text-gray-500 mt-2">Upload your complex medical PDF to get a clear, simplified summary.</p>
+        <p className="text-gray-500 mt-2">Upload your complex medical PDF or Image to get a clear, simplified summary.</p>
       </div>
 
       {!file ? (
@@ -98,11 +102,11 @@ export default function FileUpload({ onUploadSuccess }) {
           <input
             type="file"
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-            accept=".pdf"
+            accept=".pdf, image/jpeg, image/png"
             onChange={handleChange}
           />
           <UploadCloud className={`w-16 h-16 mb-4 ${dragActive ? 'text-primary-600' : 'text-gray-400'}`} />
-          <p className="text-lg font-medium text-gray-700">Drag & drop your PDF here</p>
+          <p className="text-lg font-medium text-gray-700">Drag & drop your PDF or Image here</p>
           <p className="text-sm text-gray-500 mt-1">or click to browse files</p>
         </div>
       ) : (
@@ -129,6 +133,24 @@ export default function FileUpload({ onUploadSuccess }) {
           {error}
         </div>
       )}
+
+      {/* Report Type Selector */}
+      <div className="mt-6 mb-2 text-left">
+        <label className="block text-sm font-medium text-gray-700 mb-2">Select Report Type</label>
+        <select 
+          value={reportType}
+          onChange={(e) => setReportType(e.target.value)}
+          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+        >
+          <option value="prescription">Prescription</option>
+          <option value="lab">Lab Report</option>
+          <option value="ecg">ECG / EKG</option>
+          <option value="eeg">EEG</option>
+          <option value="pulmonary">Pulmonary Function Test</option>
+          <option value="procedure">Procedure / Surgery Report</option>
+          <option value="general">General Diagnosis Report</option>
+        </select>
+      </div>
 
       <button
         onClick={handleUpload}

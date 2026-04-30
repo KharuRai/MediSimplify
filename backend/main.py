@@ -2,12 +2,12 @@ import os
 import uuid
 import json
 from dotenv import load_dotenv
-from fastapi import FastAPI, File, UploadFile, HTTPException, Depends
+from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, Form
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from supabase import create_client, Client
 
-from pdf_processor import extract_text_from_pdf
+from pdf_processor import extract_text_from_pdf, extract_images_from_pdf, extract_text_from_image
 from fda_api import get_fda_drug_data
 from rag_engine import run_rag_pipeline, extract_drug_names_from_ocr
 from pdf_generator import generate_simplified_pdf
@@ -52,24 +52,36 @@ UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 @app.post("/upload")
-async def upload_pdf(file: UploadFile = File(...), user_id: str = Depends(get_current_user)):
-    if not file.filename.endswith('.pdf'):
-        raise HTTPException(status_code=400, detail="Only PDF files are supported.")
+async def upload_pdf(
+    file: UploadFile = File(...), 
+    report_type: str = Form(...),
+    user_id: str = Depends(get_current_user)
+):
+    valid_types = ["prescription", "lab", "ecg", "eeg", "pulmonary", "procedure", "general"]
+    if report_type not in valid_types:
+        raise HTTPException(status_code=400, detail="Invalid report type.")
+
+    valid_exts = ['.pdf', '.jpg', '.jpeg', '.png']
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in valid_exts:
+        raise HTTPException(status_code=400, detail="Only PDF and image files (JPG/PNG) are supported.")
         
+    is_pdf = ext == '.pdf'
+
     if not supabase:
         raise HTTPException(status_code=500, detail="Supabase not configured.")
         
     file_id = str(uuid.uuid4())
-    input_pdf_path = os.path.join(UPLOAD_DIR, f"{file_id}_input.pdf")
+    input_file_path = os.path.join(UPLOAD_DIR, f"{file_id}_input{ext}")
     output_pdf_path = os.path.join(UPLOAD_DIR, f"{file_id}_output.pdf")
     
     # 1. Read and save locally + upload to Supabase Storage
     try:
         content = await file.read()
-        original_path = f"{user_id}/{file_id}_original.pdf"
+        original_path = f"{user_id}/{file_id}_original{ext}"
         supabase.storage.from_("medical_reports").upload(original_path, content)
         
-        with open(input_pdf_path, "wb") as f:
+        with open(input_file_path, "wb") as f:
             f.write(content)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to save file: {str(e)}")
@@ -87,36 +99,74 @@ async def upload_pdf(file: UploadFile = File(...), user_id: str = Depends(get_cu
          raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
          
     try:
-        # 3. Extract Text (OCR or pdfplumber)
-        ocr_text = extract_text_from_pdf(input_pdf_path)
-        
-        if not ocr_text:
-            raise HTTPException(status_code=400, detail="Could not extract text from the PDF.")
+        source_image_paths = []
+        image_signed_urls = []
+
+        if is_pdf:
+            # 3. Extract Text (OCR or pdfplumber)
+            ocr_text = extract_text_from_pdf(input_file_path)
             
-        # 4. Extract drug names to query FDA
-        drug_names = extract_drug_names_from_ocr(ocr_text)
-        
-        # 5. Fetch FDA Data
-        fda_data_list = []
-        for drug in drug_names:
-            drug_data = get_fda_drug_data(drug)
-            if drug_data:
-                fda_data_list.extend(drug_data)
-            else:
-                print(f"Warning: No FDA data found for drug '{drug}'")
+            if not ocr_text:
+                raise HTTPException(status_code=400, detail="Could not extract text from the PDF.")
                 
+            # 3.5 Extract Images and upload
+            local_image_paths = extract_images_from_pdf(input_file_path, UPLOAD_DIR, file_id)
+            
+            for i, img_path in enumerate(local_image_paths):
+                storage_path = f"{user_id}/{file_id}_page_{i}.jpg"
+                with open(img_path, "rb") as img_file:
+                    supabase.storage.from_("medical_reports").upload(storage_path, img_file.read())
+                source_image_paths.append(storage_path)
+                
+                # Generate signed URL
+                url_res = supabase.storage.from_("medical_reports").create_signed_url(storage_path, 3600)
+                if isinstance(url_res, dict) and "signedURL" in url_res:
+                    image_signed_urls.append(url_res["signedURL"])
+                elif hasattr(url_res, "signed_url"):
+                    image_signed_urls.append(url_res.signed_url)
+                else:
+                    image_signed_urls.append(url_res)
+                
+                # Clean up local image
+                if os.path.exists(img_path):
+                    os.remove(img_path)
+        else:
+            # Image Flow
+            ocr_text = extract_text_from_image(input_file_path)
+            if not ocr_text:
+                raise HTTPException(status_code=400, detail="Could not extract text from the image.")
+            
+            # Since it's already an image, we just use the original upload as the source image
+            source_image_paths.append(original_path)
+            url_res = supabase.storage.from_("medical_reports").create_signed_url(original_path, 3600)
+            if isinstance(url_res, dict) and "signedURL" in url_res:
+                image_signed_urls.append(url_res["signedURL"])
+            elif hasattr(url_res, "signed_url"):
+                image_signed_urls.append(url_res.signed_url)
+            else:
+                image_signed_urls.append(url_res)
+            
+        fda_data_list = []
+        if report_type == "prescription":
+            # 4. Extract drug names to query FDA
+            drug_names = extract_drug_names_from_ocr(ocr_text)
+            
+            # 5. Fetch FDA Data
+            for drug in drug_names:
+                drug_data = get_fda_drug_data(drug)
+                if drug_data:
+                    fda_data_list.extend(drug_data)
+                else:
+                    print(f"Warning: No FDA data found for drug '{drug}'")
+                    
         # 6. Run RAG Pipeline
-        structured_data = run_rag_pipeline(fda_data_list, ocr_text)
+        structured_data = run_rag_pipeline(fda_data_list, ocr_text, report_type)
+        
+        if source_image_paths:
+            structured_data["source_image_paths"] = source_image_paths
             
         # 7. Generate Output PDF
-        mapped_data = {
-            "Medicines": structured_data.get("medicines", []),
-            "Dosage": structured_data.get("dosage", "Not specified."),
-            "Purpose": structured_data.get("purpose", "Not specified."),
-            "Warnings": structured_data.get("warnings", []),
-            "Disclaimer": structured_data.get("disclaimer", "This is an AI generated summary. Please consult a doctor.")
-        }
-        generate_simplified_pdf(mapped_data, output_pdf_path)
+        generate_simplified_pdf(structured_data, output_pdf_path)
         
         # 8. Upload Result to Storage
         simplified_path = f"{user_id}/{file_id}_simplified.pdf"
@@ -127,7 +177,7 @@ async def upload_pdf(file: UploadFile = File(...), user_id: str = Depends(get_cu
         supabase.table("reports").update({
             "status": "completed",
             "simplified_file_path": simplified_path,
-            "extracted_data": mapped_data
+            "extracted_data": structured_data
         }).eq("id", report_record_id).execute()
         
     except Exception as e:
@@ -140,14 +190,16 @@ async def upload_pdf(file: UploadFile = File(...), user_id: str = Depends(get_cu
         
     finally:
         # Clean up input and output PDF to save space
-        if os.path.exists(input_pdf_path):
-            os.remove(input_pdf_path)
+        if os.path.exists(input_file_path):
+            os.remove(input_file_path)
         if os.path.exists(output_pdf_path):
             os.remove(output_pdf_path)
             
     return JSONResponse(content={
         "id": report_record_id,
-        "data": mapped_data,
+        "data": structured_data,
+        "report_type": report_type,
+        "image_urls": image_signed_urls,
         "message": "Report processed successfully."
     })
 
