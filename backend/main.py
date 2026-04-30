@@ -21,6 +21,21 @@ security = HTTPBearer()
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
 
+
+def get_cors_origins() -> list[str]:
+    """
+    Parse CORS origins from FRONTEND_ORIGINS (comma-separated) or FRONTEND_ORIGIN.
+    """
+    origins = os.getenv("FRONTEND_ORIGINS", "").strip()
+    single_origin = os.getenv("FRONTEND_ORIGIN", "").strip()
+
+    raw_values = origins or single_origin
+    if not raw_values:
+        # Local dev fallback
+        return ["http://localhost:5173"]
+
+    return [origin.strip() for origin in raw_values.split(",") if origin.strip()]
+
 supabase: Client = None
 if SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY:
     supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
@@ -41,7 +56,7 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
 # Configure CORS for frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In production, restrict to actual frontend origin
+    allow_origins=get_cors_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

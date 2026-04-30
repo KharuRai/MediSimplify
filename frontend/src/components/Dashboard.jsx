@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../supabaseClient';
+import { apiUrl } from '../config';
 
 export default function Dashboard() {
   const [reports, setReports] = useState([]);
@@ -12,7 +13,7 @@ export default function Dashboard() {
     async function fetchReports() {
       try {
         if (!session) return;
-        const response = await fetch('http://localhost:8000/reports', {
+        const response = await fetch(apiUrl('/reports'), {
           headers: {
             'Authorization': `Bearer ${session.access_token}`
           }
@@ -31,7 +32,7 @@ export default function Dashboard() {
 
   const handleDownload = async (reportId) => {
     try {
-      const response = await fetch(`http://localhost:8000/reports/${reportId}/download`, {
+      const response = await fetch(apiUrl(`/reports/${reportId}/download`), {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
         }

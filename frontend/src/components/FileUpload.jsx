@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { UploadCloud, File, X, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { apiUrl } from '../config';
 
 export default function FileUpload({ onUploadSuccess }) {
   const [dragActive, setDragActive] = useState(false);
@@ -61,7 +62,7 @@ export default function FileUpload({ onUploadSuccess }) {
     formData.append('report_type', reportType);
     
     try {
-      const response = await fetch('http://localhost:8000/upload', {
+      const response = await fetch(apiUrl('/upload'), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`

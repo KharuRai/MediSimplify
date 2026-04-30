@@ -1,6 +1,7 @@
 import React from 'react';
 import { Download, ArrowLeft, Info, FileText, Activity } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { apiUrl } from '../config';
 
 export default function ResultView({ result, onBack }) {
   const { data, id } = result;
@@ -9,7 +10,7 @@ export default function ResultView({ result, onBack }) {
   const handleDownload = async () => {
     if (!session) return;
     try {
-      const response = await fetch(`http://localhost:8000/reports/${id}/download`, {
+      const response = await fetch(apiUrl(`/reports/${id}/download`), {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
         }
