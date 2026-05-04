@@ -27,12 +27,12 @@ export default function FileUpload({ onUploadSuccess }) {
     setDragActive(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const droppedFile = e.dataTransfer.files[0];
-      const validTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+       const validTypes = ['application/pdf'];
       if (validTypes.includes(droppedFile.type)) {
         setFile(droppedFile);
         setError('');
       } else {
-        setError('Please upload a valid PDF or Image (JPG/PNG).');
+         setError('Please upload a valid PDF file.');
       }
     }
   };
@@ -41,12 +41,12 @@ export default function FileUpload({ onUploadSuccess }) {
     e.preventDefault();
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
-      const validTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+       const validTypes = ['application/pdf'];
       if (validTypes.includes(selectedFile.type)) {
         setFile(selectedFile);
         setError('');
       } else {
-        setError('Please upload a valid PDF or Image (JPG/PNG).');
+         setError('Please upload a valid PDF file.');
       }
     }
   };
@@ -103,11 +103,11 @@ export default function FileUpload({ onUploadSuccess }) {
           <input
             type="file"
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-            accept=".pdf, image/jpeg, image/png"
+             accept=".pdf"
             onChange={handleChange}
           />
           <UploadCloud className={`w-16 h-16 mb-4 ${dragActive ? 'text-primary-600' : 'text-gray-400'}`} />
-          <p className="text-lg font-medium text-gray-700">Drag & drop your PDF or Image here</p>
+           <p className="text-lg font-medium text-gray-700">Drag & drop your PDF here</p>
           <p className="text-sm text-gray-500 mt-1">or click to browse files</p>
         </div>
       ) : (

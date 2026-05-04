@@ -91,12 +91,12 @@ async def upload_pdf(
     if report_type not in valid_types:
         raise HTTPException(status_code=400, detail="Invalid report type.")
 
-    valid_exts = ['.pdf', '.jpg', '.jpeg', '.png']
+    valid_exts = ['.pdf']
     ext = os.path.splitext(file.filename)[1].lower()
     if ext not in valid_exts:
-        raise HTTPException(status_code=400, detail="Only PDF and image files (JPG/PNG) are supported.")
+        raise HTTPException(status_code=400, detail="Only PDF files are supported.")
         
-    is_pdf = ext == '.pdf'
+    is_pdf = True
 
     if not supabase:
         raise HTTPException(status_code=500, detail="Supabase not configured.")
@@ -170,31 +170,8 @@ async def upload_pdf(
                 if os.path.exists(img_path):
                     os.remove(img_path)
         else:
-            # Image Flow
-            ocr_text = ""
-            try:
-                ocr_text = extract_text_from_image(input_file_path)
-                if ocr_text:
-                    print(f"OCR extraction successful, got {len(ocr_text)} characters")
-                else:
-                    print("OCR extraction returned empty text, but proceeding with visual analysis")
-            except Exception as ocr_error:
-                print(f"OCR Error for image (proceeding with visual analysis): {str(ocr_error)}")
-                # Don't fail - let LLM handle visual analysis
-            
-            # Since it's already an image, we just use the original upload as the source image
-            source_image_paths.append(original_path)
-            try:
-                url_res = supabase.storage.from_("medical_reports").create_signed_url(original_path, 3600)
-                if isinstance(url_res, dict) and "signedURL" in url_res:
-                    image_signed_urls.append(url_res["signedURL"])
-                elif hasattr(url_res, "signed_url"):
-                    image_signed_urls.append(url_res.signed_url)
-                else:
-                    image_signed_urls.append(url_res)
-            except Exception as url_error:
-                print(f"URL generation error: {str(url_error)}")
-                raise HTTPException(status_code=500, detail=f"Failed to generate image URL: {str(url_error)}")
+            # This should not happen now since we only accept PDFs
+            raise HTTPException(status_code=400, detail="Only PDF files are supported.")
             
         fda_data_list = []
         if report_type == "prescription":
