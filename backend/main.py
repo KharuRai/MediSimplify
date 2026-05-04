@@ -134,13 +134,22 @@ async def upload_pdf(
 
         if is_pdf:
             # 3. Extract Text (OCR or pdfplumber)
-            ocr_text = extract_text_from_pdf(input_file_path)
-            
-            if not ocr_text:
-                raise HTTPException(status_code=400, detail="Could not extract text from the PDF.")
+            try:
+                ocr_text = extract_text_from_pdf(input_file_path)
+                if not ocr_text:
+                    raise HTTPException(status_code=400, detail="Could not extract text from the PDF.")
+            except HTTPException:
+                raise
+            except Exception as pdf_error:
+                print(f"PDF extraction error: {str(pdf_error)}")
+                raise HTTPException(status_code=500, detail=f"PDF processing failed: {str(pdf_error)}")
                 
             # 3.5 Extract Images and upload
-            local_image_paths = extract_images_from_pdf(input_file_path, UPLOAD_DIR, file_id)
+            try:
+                local_image_paths = extract_images_from_pdf(input_file_path, UPLOAD_DIR, file_id)
+            except Exception as img_extract_error:
+                print(f"Image extraction from PDF error: {str(img_extract_error)}")
+                raise HTTPException(status_code=500, detail=f"Failed to extract images from PDF: {str(img_extract_error)}")
             
             for i, img_path in enumerate(local_image_paths):
                 storage_path = f"{user_id}/{file_id}_page_{i}.jpg"
@@ -162,19 +171,27 @@ async def upload_pdf(
                     os.remove(img_path)
         else:
             # Image Flow
-            ocr_text = extract_text_from_image(input_file_path)
-            if not ocr_text:
-                raise HTTPException(status_code=400, detail="Could not extract text from the image.")
+            try:
+                ocr_text = extract_text_from_image(input_file_path)
+                if not ocr_text:
+                    raise HTTPException(status_code=400, detail="Could not extract text from the image.")
+            except Exception as ocr_error:
+                print(f"OCR Error for image: {str(ocr_error)}")
+                raise HTTPException(status_code=500, detail=f"OCR processing failed: {str(ocr_error)}")
             
             # Since it's already an image, we just use the original upload as the source image
             source_image_paths.append(original_path)
-            url_res = supabase.storage.from_("medical_reports").create_signed_url(original_path, 3600)
-            if isinstance(url_res, dict) and "signedURL" in url_res:
-                image_signed_urls.append(url_res["signedURL"])
-            elif hasattr(url_res, "signed_url"):
-                image_signed_urls.append(url_res.signed_url)
-            else:
-                image_signed_urls.append(url_res)
+            try:
+                url_res = supabase.storage.from_("medical_reports").create_signed_url(original_path, 3600)
+                if isinstance(url_res, dict) and "signedURL" in url_res:
+                    image_signed_urls.append(url_res["signedURL"])
+                elif hasattr(url_res, "signed_url"):
+                    image_signed_urls.append(url_res.signed_url)
+                else:
+                    image_signed_urls.append(url_res)
+            except Exception as url_error:
+                print(f"URL generation error: {str(url_error)}")
+                raise HTTPException(status_code=500, detail=f"Failed to generate image URL: {str(url_error)}")
             
         fda_data_list = []
         if report_type == "prescription":
