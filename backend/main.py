@@ -2,7 +2,7 @@ import os
 import uuid
 import json
 from dotenv import load_dotenv
-from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, Form
+from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, Form, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from supabase import create_client, Client
@@ -16,7 +16,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 load_dotenv()
 
 app = FastAPI(title="MediSimplify API")
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
@@ -30,17 +30,30 @@ def get_cors_origins() -> list[str]:
     single_origin = os.getenv("FRONTEND_ORIGIN", "").strip()
 
     raw_values = origins or single_origin
-    if not raw_values:
-        # Local dev fallback
-        return ["http://localhost:5173"]
+    allowed = [origin.strip() for origin in raw_values.split(",") if origin.strip()]
 
-    return [origin.strip() for origin in raw_values.split(",") if origin.strip()]
+    # Always allow local development host for local frontend testing
+    for dev_origin in ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:5174", "http://127.0.0.1:5174"]:
+        if dev_origin not in allowed:
+            allowed.append(dev_origin)
+
+    if not allowed:
+        return ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:5174", "http://127.0.0.1:5174"]
+
+    return allowed
 
 supabase: Client = None
 if SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY:
     supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
-def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+def get_current_user(request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)):
+    # Allow OPTIONS (preflight) requests without authentication
+    if request.method == "OPTIONS":
+        return None
+    
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
     token = credentials.credentials
     if not supabase:
         raise HTTPException(status_code=500, detail="Supabase not configured")
@@ -61,6 +74,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+print(f"Configured CORS origins: {get_cors_origins()}")
 
 
 UPLOAD_DIR = "uploads"
