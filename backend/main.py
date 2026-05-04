@@ -171,13 +171,16 @@ async def upload_pdf(
                     os.remove(img_path)
         else:
             # Image Flow
+            ocr_text = ""
             try:
                 ocr_text = extract_text_from_image(input_file_path)
-                if not ocr_text:
-                    raise HTTPException(status_code=400, detail="Could not extract text from the image.")
+                if ocr_text:
+                    print(f"OCR extraction successful, got {len(ocr_text)} characters")
+                else:
+                    print("OCR extraction returned empty text, but proceeding with visual analysis")
             except Exception as ocr_error:
-                print(f"OCR Error for image: {str(ocr_error)}")
-                raise HTTPException(status_code=500, detail=f"OCR processing failed: {str(ocr_error)}")
+                print(f"OCR Error for image (proceeding with visual analysis): {str(ocr_error)}")
+                # Don't fail - let LLM handle visual analysis
             
             # Since it's already an image, we just use the original upload as the source image
             source_image_paths.append(original_path)

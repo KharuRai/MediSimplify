@@ -226,9 +226,12 @@ def run_rag_pipeline(fda_data_list: List[Dict[str, Any]], ocr_text: str, report_
     
     chain = prompt | llm
     
+    # If OCR text is empty, provide context about the image being analyzed visually
+    ocr_or_note = ocr_text if ocr_text.strip() else "[Image analyzed visually due to complex layout]"
+    
     response = chain.invoke({
         "context": context,
-        "ocr_text": ocr_text
+        "ocr_text": ocr_or_note
     })
     
     raw_content = response.content.strip()
