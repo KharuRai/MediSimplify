@@ -146,9 +146,6 @@ export default function FileUpload({ onUploadSuccess }) {
           <option value="prescription">Prescription</option>
           <option value="lab">Lab Report</option>
           <option value="ecg">ECG / EKG</option>
-          <option value="eeg">EEG</option>
-          <option value="pulmonary">Pulmonary Function Test</option>
-          <option value="procedure">Procedure / Surgery Report</option>
           <option value="general">General Diagnosis Report</option>
         </select>
       </div>

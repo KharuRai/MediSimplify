@@ -46,7 +46,12 @@ export default function ResultView({ result, onBack }) {
                   {item.frequency && <p className="text-sm text-gray-600 mb-1"><span className="font-medium">How to take:</span> {item.frequency}</p>}
                   {item.purpose && <p className="text-sm text-gray-600 mb-1"><span className="font-medium">Use:</span> {item.purpose}</p>}
                   {item.warnings && <p className="text-sm text-amber-700 mb-1"><span className="font-medium">Warnings:</span> {item.warnings}</p>}
-                  {item.fda_validation && <p className="text-sm text-sky-700"><span className="font-medium">OpenFDA check:</span> {item.fda_validation}</p>}
+                  {item.fda_validation && (
+                    <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="text-sm font-medium text-blue-800 mb-1">FDA Information:</div>
+                      <div className="text-sm text-blue-700">{item.fda_validation}</div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -60,21 +65,21 @@ export default function ResultView({ result, onBack }) {
               <div 
                 key={idx} 
                 className={`p-4 rounded-xl border ${
-                  item.status === 'High' ? 'bg-red-50 border-red-200' :
-                  item.status === 'Low' ? 'bg-amber-50 border-amber-200' :
+                      item.status_report_based === 'High' ? 'bg-red-50 border-red-200' :
+                      item.status_report_based === 'Low' ? 'bg-amber-50 border-amber-200' :
                   'bg-white border-gray-100'
                 }`}
               >
                 <div className="flex justify-between items-start mb-2">
                   <span className="font-semibold text-gray-800">{item.test_name || "Unknown Test"}</span>
-                  {item.status && item.status !== 'Unknown' && item.status !== 'Normal' && (
+                  {item.status_report_based && item.status_report_based !== 'Unknown' && item.status_report_based !== 'Normal' && (
                     <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                      item.status === 'High' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
+                      item.status_report_based === 'High' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
                     }`}>
-                      {item.status}
+                      {item.status_report_based}
                     </span>
                   )}
-                  {item.status === 'Normal' && (
+                  {item.status_report_based === 'Normal' && (
                     <span className="text-xs px-2 py-1 rounded-full font-medium bg-emerald-100 text-emerald-700">
                       Normal
                     </span>
@@ -82,12 +87,38 @@ export default function ResultView({ result, onBack }) {
                 </div>
                 <div className="flex items-center text-sm text-gray-600 mb-2">
                   <span className="font-medium mr-2">{item.value !== null ? item.value : 'N/A'} {item.unit || ''}</span>
-                  {(item.min_range || item.max_range) && (
+                  {(item.report_range || item.min_range || item.max_range) && (
                     <span className="text-gray-400 text-xs">
-                      (Ref: {item.min_range || '?'} - {item.max_range || '?'})
+                      (Report: {item.report_range || `${item.min_range || '?'} - ${item.max_range || '?'}`})
                     </span>
                   )}
                 </div>
+                {item.clinical_range && (
+                  <div className="text-sm text-gray-500 mb-2">
+                    <span className="font-medium">Clinical Ref:</span> {item.clinical_range}
+                  </div>
+                )}
+                {item.status_clinical && item.status_clinical !== 'Unknown' && (
+                  <div className="text-sm text-gray-500 mb-2">
+                    <span className="font-medium">Status (Clinical):</span> {item.status_clinical}
+                  </div>
+                )}
+                {item.confidence && (
+                  <div className="inline-flex items-center gap-2 text-sm font-medium mb-2">
+                    <span className={`px-2 py-1 rounded-full ${
+                      item.confidence === 'High' ? 'bg-emerald-100 text-emerald-700' :
+                      item.confidence === 'Medium' ? 'bg-amber-100 text-amber-700' :
+                      'bg-red-100 text-red-700'
+                    }`}>
+                      Confidence: {item.confidence}
+                    </span>
+                  </div>
+                )}
+                {item.warning && (
+                  <div className="text-xs text-amber-700 border border-amber-100 rounded-xl p-3 mb-2 bg-amber-50">
+                    {item.warning}
+                  </div>
+                )}
                 {item.explanation && (
                   <p className="text-sm text-gray-500 mt-2 border-t border-gray-100 pt-2">{item.explanation}</p>
                 )}

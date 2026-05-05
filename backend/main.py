@@ -87,7 +87,7 @@ async def upload_pdf(
     report_type: str = Form(...),
     user_id: str = Depends(get_current_user)
 ):
-    valid_types = ["prescription", "lab", "ecg", "eeg", "pulmonary", "procedure", "general"]
+    valid_types = ["prescription", "lab", "ecg", "general"]
     if report_type not in valid_types:
         raise HTTPException(status_code=400, detail="Invalid report type.")
 

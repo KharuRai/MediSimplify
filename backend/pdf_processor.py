@@ -4,6 +4,7 @@ import pytesseract
 from pdf2image import convert_from_path
 from typing import List
 from PIL import Image
+import re
 
 def extract_text_from_pdf(pdf_path: str) -> str:
     """
@@ -67,3 +68,19 @@ def extract_text_from_image(image_path: str) -> str:
     except Exception as e:
         print(f"Error extracting text from image: {e}")
     return text.strip()
+
+
+UNIT_REGEX = re.compile(
+    r"\b(?:g/dL|mg/dL|mmol/L|µmol/L|umol/L|x10\^3/uL|10\^3/uL|K/µL|cells/mm3|/cmm|%)\b",
+    flags=re.IGNORECASE,
+)
+
+
+def extract_units_from_text(text: str) -> List[str]:
+    """
+    Returns a list of recognized lab units from OCR'd text.
+    """
+    if not text:
+        return []
+    matches = UNIT_REGEX.findall(text)
+    return list({match for match in matches})
