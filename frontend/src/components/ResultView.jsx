@@ -40,7 +40,7 @@ export default function ResultView({ result, onBack }) {
           return (
             <div className="space-y-4">
               {value.map((item, idx) => (
-                <div key={idx} className="p-4 rounded-xl border bg-white border-gray-100">
+                <div key={idx} className="p-4 rounded-xl border bg-white dark:bg-slate-900 border-gray-100 dark:border-slate-700">
                   <div className="font-semibold text-gray-800 mb-2">{item.name || "Unknown Medicine"}</div>
                   {item.dosage && <p className="text-sm text-gray-600 mb-1"><span className="font-medium">Dosage:</span> {item.dosage}</p>}
                   {item.frequency && <p className="text-sm text-gray-600 mb-1"><span className="font-medium">How to take:</span> {item.frequency}</p>}
@@ -67,7 +67,7 @@ export default function ResultView({ result, onBack }) {
                 className={`p-4 rounded-xl border ${
                       item.status_report_based === 'High' ? 'bg-red-50 border-red-200' :
                       item.status_report_based === 'Low' ? 'bg-amber-50 border-amber-200' :
-                  'bg-white border-gray-100'
+                        'bg-white dark:bg-slate-900 border-gray-100 dark:border-slate-700'
                 }`}
               >
                 <div className="flex justify-between items-start mb-2">
@@ -94,12 +94,12 @@ export default function ResultView({ result, onBack }) {
                   )}
                 </div>
                 {item.clinical_range && (
-                  <div className="text-sm text-gray-500 mb-2">
+                  <div className="text-sm text-gray-500 dark:text-slate-400 mb-2">
                     <span className="font-medium">Clinical Ref:</span> {item.clinical_range}
                   </div>
                 )}
                 {item.status_clinical && item.status_clinical !== 'Unknown' && (
-                  <div className="text-sm text-gray-500 mb-2">
+                  <div className="text-sm text-gray-500 dark:text-slate-400 mb-2">
                     <span className="font-medium">Status (Clinical):</span> {item.status_clinical}
                   </div>
                 )}
@@ -115,12 +115,12 @@ export default function ResultView({ result, onBack }) {
                   </div>
                 )}
                 {item.warning && (
-                  <div className="text-xs text-amber-700 border border-amber-100 rounded-xl p-3 mb-2 bg-amber-50">
+                  <div className="text-xs text-amber-700 border border-amber-100 rounded-xl p-3 mb-2 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700">
                     {item.warning}
                   </div>
                 )}
                 {item.explanation && (
-                  <p className="text-sm text-gray-500 mt-2 border-t border-gray-100 pt-2">{item.explanation}</p>
+                  <p className="text-sm text-gray-500 dark:text-slate-400 mt-2 border-t border-gray-100 dark:border-slate-700 pt-2">{item.explanation}</p>
                 )}
               </div>
             ))}
@@ -133,7 +133,7 @@ export default function ResultView({ result, onBack }) {
             {value.map((item, idx) => (
               <li key={idx} className="flex items-start">
                 <span className="w-1.5 h-1.5 rounded-full bg-primary-500 mt-2 mr-2 flex-shrink-0"></span>
-                <span className="text-gray-700">{item}</span>
+                <span className="text-gray-700 dark:text-slate-200">{item}</span>
               </li>
             ))}
           </ul>
@@ -141,16 +141,16 @@ export default function ResultView({ result, onBack }) {
       }
     }
     
-    return <p className="text-gray-700">{String(value)}</p>;
+    return <p className="text-gray-700 dark:text-slate-200">{String(value)}</p>;
   };
 
   return (
-    <div className={`w-full ${result.image_urls && result.image_urls.length > 0 ? 'max-w-7xl' : 'max-w-4xl'} mx-auto p-6 lg:p-8 bg-white rounded-3xl shadow-2xl border border-gray-100 transition-all duration-500 ease-in-out animate-in fade-in slide-in-from-bottom-4`}>
+    <div className={`w-full ${result.image_urls && result.image_urls.length > 0 ? 'max-w-7xl' : 'max-w-4xl'} mx-auto p-6 lg:p-8 bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-gray-100 dark:border-slate-700 transition-all duration-500 ease-in-out animate-in fade-in slide-in-from-bottom-4`}>
       
-      <div className="flex items-center justify-between mb-8 pb-6 border-b border-gray-100">
+      <div className="flex items-center justify-between mb-8 pb-6 border-b border-gray-100 dark:border-slate-700">
         <button 
           onClick={onBack}
-          className="flex items-center text-gray-500 hover:text-primary-600 transition-colors font-medium"
+          className="flex items-center text-gray-500 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-medium"
         >
           <ArrowLeft className="w-5 h-5 mr-2" />
           Back to Upload
@@ -173,7 +173,7 @@ export default function ResultView({ result, onBack }) {
             if (key === 'Disclaimer' || key === 'source_image_paths' || !value || (Array.isArray(value) && value.length === 0)) return null;
             
             return (
-              <div key={key} className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
+              <div key={key} className="bg-slate-50 dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-700">
                 <div className="flex items-center text-slate-800 font-semibold text-lg mb-4 capitalize">
                   <FileText className="w-5 h-5 mr-2 text-primary-500" />
                   {key}
@@ -183,8 +183,8 @@ export default function ResultView({ result, onBack }) {
             );
           })}
           
-          <div className="mt-8 pt-6 border-t border-gray-100">
-            <div className="flex items-start text-xs text-gray-400 bg-gray-50 p-4 rounded-lg">
+          <div className="mt-8 pt-6 border-t border-gray-100 dark:border-slate-700">
+            <div className="flex items-start text-xs text-gray-400 dark:text-slate-400 bg-gray-50 dark:bg-slate-800 p-4 rounded-lg">
               <Info className="w-4 h-4 mr-2 flex-shrink-0 mt-0.5" />
               <p>{data?.Disclaimer || "This is an AI generated summary. Please consult a medical professional for advice."}</p>
             </div>
@@ -194,10 +194,10 @@ export default function ResultView({ result, onBack }) {
         {/* Right Column: Source Document Images */}
         {result.image_urls && result.image_urls.length > 0 && (
           <div className="space-y-4">
-            <h3 className="text-xl font-bold text-slate-800 border-b border-slate-100 pb-2 flex items-center">
+            <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 border-b border-slate-100 dark:border-slate-700 pb-2 flex items-center">
               Source Document
             </h3>
-            <div className="flex flex-col space-y-4 bg-slate-50 p-4 rounded-2xl border border-slate-200 overflow-y-auto max-h-[800px] shadow-inner">
+            <div className="flex flex-col space-y-4 bg-slate-50 dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-y-auto max-h-[800px] shadow-inner">
               {result.image_urls.map((url, idx) => (
                 <div key={idx} className="relative group">
                   <span className="absolute top-2 left-2 bg-slate-900/70 text-white text-xs px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity">

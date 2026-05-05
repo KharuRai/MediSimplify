@@ -31,36 +31,36 @@ export default function Signup() {
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center">
-      <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-md">
+      <div className="bg-white dark:bg-slate-900 p-8 rounded-xl shadow-lg w-full max-w-md border border-gray-100 dark:border-slate-700">
         <h2 className="text-2xl font-bold text-center mb-6">Sign Up for MediSimplify</h2>
         {error && <div className="bg-red-100 text-red-700 p-3 rounded mb-4">{error}</div>}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Email</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300">Email</label>
             <input 
               type="email" 
               required 
-              className="mt-1 w-full p-2 border rounded focus:ring-primary-500 focus:border-primary-500" 
+              className="mt-1 w-full p-2 border border-gray-300 rounded bg-white text-slate-900 focus:ring-primary-500 focus:border-primary-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" 
               value={email} 
               onChange={(e) => setEmail(e.target.value)} 
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Password</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300">Password</label>
             <input 
               type="password" 
               required 
-              className="mt-1 w-full p-2 border rounded focus:ring-primary-500 focus:border-primary-500" 
+              className="mt-1 w-full p-2 border border-gray-300 rounded bg-white text-slate-900 focus:ring-primary-500 focus:border-primary-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" 
               value={password} 
               onChange={(e) => setPassword(e.target.value)} 
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Confirm Password</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300">Confirm Password</label>
             <input 
               type="password" 
               required 
-              className="mt-1 w-full p-2 border rounded focus:ring-primary-500 focus:border-primary-500" 
+              className="mt-1 w-full p-2 border border-gray-300 rounded bg-white text-slate-900 focus:ring-primary-500 focus:border-primary-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" 
               value={passwordConfirm} 
               onChange={(e) => setPasswordConfirm(e.target.value)} 
             />
