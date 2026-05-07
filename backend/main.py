@@ -172,7 +172,10 @@ async def upload_pdf(
             try:
                 ocr_text = extract_text_from_pdf(input_file_path)
                 if not ocr_text:
-                    raise HTTPException(status_code=400, detail="Could not extract text from the PDF.")
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Could not extract text from the PDF. Ensure the file is readable and OCR dependencies (Poppler/Tesseract) are installed on the backend host."
+                    )
             except HTTPException:
                 raise
             except Exception as pdf_error:

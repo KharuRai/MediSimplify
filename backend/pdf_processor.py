@@ -25,20 +25,28 @@ def extract_text_from_pdf(pdf_path: str) -> str:
     except Exception as e:
         print(f"Error reading PDF with pdfplumber: {e}")
 
-    # Heuristic: If extracted text is less than 50 characters, it might be a scanned image
-    if len(text.strip()) < 50:
+    # Heuristic: If extracted text is very short, it might be a scanned image.
+    # Keep the original extraction so we don't lose potentially useful content
+    # when OCR tooling is unavailable or fails.
+    extracted_text = text.strip()
+    if len(extracted_text) < 50:
         print("Text is too short, falling back to OCR...")
-        text = "" # Reset text
+        ocr_text = ""
         # Stage 2: Fallback to OCR
         try:
             images = convert_from_path(pdf_path)
             for i, image in enumerate(images):
                 page_text = pytesseract.image_to_string(image)
-                text += page_text + "\n"
+                ocr_text += page_text + "\n"
         except Exception as e:
             print(f"Error during OCR extraction: {e}")
+            return extracted_text
 
-    return text.strip()
+        ocr_text = ocr_text.strip()
+        if len(ocr_text) >= len(extracted_text):
+            return ocr_text
+
+    return extracted_text
 
 def extract_images_from_pdf(pdf_path: str, output_dir: str, file_prefix: str) -> List[str]:
     """
