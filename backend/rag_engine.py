@@ -36,6 +36,7 @@ If FDA context is available, populate fda_validation with a concise summary of t
 
 Respond ONLY with valid JSON in the exact following structure:
 {
+  "Summary": "Simple summary of what this prescription is for and key care instructions, or 'Not clearly mentioned' if unclear.",
   "Medicines": [
     {
       "name": "",
@@ -391,6 +392,40 @@ def enrich_prescription_with_fda(structured_data: Dict[str, Any], fda_data_list:
         medicine["fda_validation"] = _summarize_fda_label(matched_labels[0]) if matched_labels else "No FDA information available"
     return structured_data
 
+
+def ensure_prescription_fields(structured_data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Normalize prescription output so frontend always has at least one
+    user-visible section even when medicine extraction fails.
+    """
+    if not isinstance(structured_data, dict):
+        return {
+            "Summary": "Could not extract structured prescription details from this document.",
+            "Medicines": [],
+        }
+
+    medicines = structured_data.get("Medicines")
+    if not isinstance(medicines, list):
+        structured_data["Medicines"] = []
+        medicines = structured_data["Medicines"]
+
+    summary = structured_data.get("Summary")
+    if not isinstance(summary, str) or not summary.strip():
+        if medicines:
+            med_names = [
+                str(med.get("name", "")).strip()
+                for med in medicines
+                if isinstance(med, dict) and str(med.get("name", "")).strip()
+            ]
+            if med_names:
+                structured_data["Summary"] = f"Prescription includes: {', '.join(med_names[:5])}."
+            else:
+                structured_data["Summary"] = "Prescription detected. Review medicine details below."
+        else:
+            structured_data["Summary"] = "Could not extract medicine details clearly from this prescription. Try a clearer scan."
+
+    return structured_data
+
 def run_rag_pipeline(fda_data_list: List[Dict[str, Any]], ocr_text: str, report_type: str = "prescription") -> Dict[str, Any]:
     """
     Conditionally chunks FDA text, retrieves context if available, and uses a modular prompt routing
@@ -503,6 +538,7 @@ def run_rag_pipeline(fda_data_list: List[Dict[str, Any]], ocr_text: str, report_
         )
     if report_type == "prescription":
         structured_data = enrich_prescription_with_fda(structured_data, fda_data_list)
+        structured_data = ensure_prescription_fields(structured_data)
 
     return structured_data
 

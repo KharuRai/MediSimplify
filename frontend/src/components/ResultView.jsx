@@ -6,6 +6,12 @@ import { apiUrl } from '../config';
 export default function ResultView({ result, onBack }) {
   const { data, id } = result;
   const { session } = useAuth();
+  const visibleSections = Object.entries(data || {}).filter(([key, value]) => {
+    if (key === 'Disclaimer' || key === 'source_image_paths') return false;
+    if (!value) return false;
+    if (Array.isArray(value) && value.length === 0) return false;
+    return true;
+  });
 
   const handleDownload = async () => {
     if (!session) return;
@@ -169,7 +175,7 @@ export default function ResultView({ result, onBack }) {
         
         {/* Left Column: AI Summary */}
         <div className="space-y-6">
-          {Object.entries(data || {}).map(([key, value]) => {
+          {visibleSections.map(([key, value]) => {
             if (key === 'Disclaimer' || key === 'source_image_paths' || !value || (Array.isArray(value) && value.length === 0)) return null;
             
             return (
@@ -182,6 +188,18 @@ export default function ResultView({ result, onBack }) {
               </div>
             );
           })}
+
+          {visibleSections.length === 0 && (
+            <div className="bg-amber-50 dark:bg-amber-900/20 p-6 rounded-2xl border border-amber-200 dark:border-amber-700">
+              <div className="flex items-center text-amber-800 dark:text-amber-300 font-semibold text-lg mb-2">
+                <Activity className="w-5 h-5 mr-2" />
+                No simplification extracted
+              </div>
+              <p className="text-amber-700 dark:text-amber-200 text-sm leading-relaxed">
+                We could not extract structured summary fields from this document. Please try a clearer scan or choose a different report type.
+              </p>
+            </div>
+          )}
           
           <div className="mt-8 pt-6 border-t border-gray-100 dark:border-slate-700">
             <div className="flex items-start text-xs text-gray-400 dark:text-slate-400 bg-gray-50 dark:bg-slate-800 p-4 rounded-lg">
