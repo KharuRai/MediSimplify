@@ -24,13 +24,31 @@ SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
 
 def get_cors_origins() -> list[str]:
     """
-    Parse CORS origins from FRONTEND_ORIGINS (comma-separated) or FRONTEND_ORIGIN.
+    Parse CORS origins from FRONTEND_ORIGINS/FRONTEND_ORIGIN and common deploy envs.
     """
-    origins = os.getenv("FRONTEND_ORIGINS", "").strip()
-    single_origin = os.getenv("FRONTEND_ORIGIN", "").strip()
+    env_values = [
+        os.getenv("FRONTEND_ORIGINS", ""),
+        os.getenv("FRONTEND_ORIGIN", ""),
+        os.getenv("FRONTEND_URL", ""),
+        os.getenv("VERCEL_PROJECT_PRODUCTION_URL", ""),
+    ]
+    allowed: list[str] = []
 
-    raw_values = origins or single_origin
-    allowed = [origin.strip() for origin in raw_values.split(",") if origin.strip()]
+    for raw in env_values:
+        if not raw:
+            continue
+        for candidate in raw.split(","):
+            origin = candidate.strip().rstrip("/")
+            if not origin:
+                continue
+            if origin.startswith("http://") or origin.startswith("https://"):
+                if origin not in allowed:
+                    allowed.append(origin)
+                continue
+            # Handle envs like "my-app.vercel.app" without scheme
+            https_origin = f"https://{origin}"
+            if https_origin not in allowed:
+                allowed.append(https_origin)
 
     # Always allow local development host for local frontend testing
     for dev_origin in ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:5174", "http://127.0.0.1:5174"]:
