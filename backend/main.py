@@ -46,6 +46,41 @@ supabase: Client = None
 if SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY:
     supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
+
+def normalize_signed_url(url_response) -> str:
+    """
+    Handle Supabase signed URL response shape differences across client versions.
+    Always return an absolute URL string.
+    """
+    candidate = None
+
+    if isinstance(url_response, str):
+        candidate = url_response
+    elif isinstance(url_response, dict):
+        # Common keys observed across supabase-py versions
+        candidate = (
+            url_response.get("signedURL")
+            or url_response.get("signedUrl")
+            or url_response.get("signed_url")
+        )
+        if candidate is None and isinstance(url_response.get("data"), dict):
+            data = url_response["data"]
+            candidate = (
+                data.get("signedURL")
+                or data.get("signedUrl")
+                or data.get("signed_url")
+            )
+    elif hasattr(url_response, "signed_url"):
+        candidate = getattr(url_response, "signed_url")
+
+    if not candidate or not isinstance(candidate, str):
+        raise ValueError(f"Invalid signed URL response: {url_response}")
+
+    # Some SDK versions return a relative path like /storage/v1/object/sign/...
+    if candidate.startswith("/") and SUPABASE_URL:
+        return f"{SUPABASE_URL.rstrip('/')}{candidate}"
+    return candidate
+
 def get_current_user(request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)):
     # Allow OPTIONS (preflight) requests without authentication
     if request.method == "OPTIONS":
@@ -159,12 +194,7 @@ async def upload_pdf(
                 
                 # Generate signed URL
                 url_res = supabase.storage.from_("medical_reports").create_signed_url(storage_path, 3600)
-                if isinstance(url_res, dict) and "signedURL" in url_res:
-                    image_signed_urls.append(url_res["signedURL"])
-                elif hasattr(url_res, "signed_url"):
-                    image_signed_urls.append(url_res.signed_url)
-                else:
-                    image_signed_urls.append(url_res)
+                image_signed_urls.append(normalize_signed_url(url_res))
                 
                 # Clean up local image
                 if os.path.exists(img_path):
@@ -258,14 +288,7 @@ async def download_report(report_id: str, user_id: str = Depends(get_current_use
              
         # Generate signed URL
         url_response = supabase.storage.from_("medical_reports").create_signed_url(simplified_file_path, 3600)
-        
-        # Check if the response contains the signedURL string (depends on supabase-py version)
-        if isinstance(url_response, dict) and "signedURL" in url_response:
-            return {"signed_url": url_response["signedURL"]}
-        elif hasattr(url_response, "signed_url"):
-            return {"signed_url": url_response.signed_url}
-        else:
-            return {"signed_url": url_response} # Sometimes it returns the string directly
+        return {"signed_url": normalize_signed_url(url_response)}
     except HTTPException:
         raise
     except Exception as e:
